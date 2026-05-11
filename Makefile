@@ -32,13 +32,15 @@ push: repo
 
 deploy-pages: push
 	@rm -rf .gh-pages
+	@git worktree prune
 
 	@git fetch origin gh-pages >/dev/null 2>&1 || true
 
 	@if git show-ref --verify --quiet refs/remotes/origin/gh-pages; then \
-		git worktree add .gh-pages origin/gh-pages; \
+		git worktree add -B gh-pages .gh-pages origin/gh-pages; \
 	else \
-		git worktree add --orphan .gh-pages; \
+		git worktree add -B gh-pages .gh-pages; \
+		cd .gh-pages && git rm -rf . >/dev/null 2>&1 || true; \
 	fi
 
 	@find .gh-pages -mindepth 1 ! -name ".git" -exec rm -rf {} +
@@ -53,7 +55,6 @@ deploy-pages: push
 
 	@cd .gh-pages && git add -A
 	@cd .gh-pages && git commit -m "Deploy GitHub Pages" || true
-	@cd .gh-pages && git branch -M gh-pages
 	@cd .gh-pages && git push origin gh-pages --force
 
 	@git worktree remove .gh-pages --force
@@ -73,3 +74,4 @@ deploy-pages: push
 
 clean:
 	@rm -rf .gh-pages
+	@git worktree prune
