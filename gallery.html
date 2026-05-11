@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gallery · WIiEE Pages Lab</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="logo" href="index.html">WIiEE Lab</a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a class="active" href="gallery.html">Gallery</a>
+      </nav>
+      <button class="theme-toggle" type="button" aria-label="Toggle theme">☀</button>
+    </header>
+
+    <main class="page-shell">
+      <section class="page-hero">
+        <p class="eyebrow">Gallery</p>
+        <h1>필터 버튼까지 붙인 샘플 카드 모음</h1>
+        <p>각 버튼을 눌러 JavaScript 이벤트와 CSS 상태 변화가 잘 적용되는지 확인하세요.</p>
+      </section>
+
+      <section class="filter-bar" aria-label="Gallery filters">
+        <button class="filter active" type="button" data-filter="all">All</button>
+        <button class="filter" type="button" data-filter="deploy">Deploy</button>
+        <button class="filter" type="button" data-filter="design">Design</button>
+        <button class="filter" type="button" data-filter="motion">Motion</button>
+      </section>
+
+      <section class="gallery-grid" aria-live="polite">
+        <article class="gallery-card" data-kind="deploy">
+          <div class="card-visual sunrise"></div>
+          <h2>Branch Deploy</h2>
+          <p>gh-pages 브랜치 배포 확인용 카드입니다.</p>
+        </article>
+        <article class="gallery-card" data-kind="design">
+          <div class="card-visual mint"></div>
+          <h2>Shared Theme</h2>
+          <p>공용 CSS가 모든 페이지에서 같은 분위기를 유지합니다.</p>
+        </article>
+        <article class="gallery-card" data-kind="motion">
+          <div class="card-visual violet"></div>
+          <h2>Interactive JS</h2>
+          <p>필터와 테마 토글로 스크립트 실행을 확인합니다.</p>
+        </article>
+        <article class="gallery-card" data-kind="deploy">
+          <div class="card-visual ocean"></div>
+          <h2>Relative Links</h2>
+          <p>저장소 이름이 URL에 붙어도 이동이 잘 됩니다.</p>
+        </article>
+        <article class="gallery-card" data-kind="design">
+          <div class="card-visual amber"></div>
+          <h2>Responsive Cards</h2>
+          <p>화면 폭이 줄어들면 카드가 자연스럽게 한 줄로 정렬됩니다.</p>
+        </article>
+        <article class="gallery-card" data-kind="motion">
+          <div class="card-visual graphite"></div>
+          <h2>Loaded State</h2>
+          <p>페이지 로드 후 부드러운 등장 효과가 적용됩니다.</p>
+        </article>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>Built for GitHub Pages testing.</span>
+      <span id="year"></span>
+    </footer>
+  </body>
+</html>
