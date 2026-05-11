@@ -1,11 +1,12 @@
-REPO_NAME ?= my-repo
-VISIBILITY ?= public # private | public
-BUILD_DIR ?= dist
+REPO_NAME ?= test-repo-deploy
+GITHUB_USER ?= wiieeDev
+SSH_HOST ?= github-wiiee
+
+VISIBILITY ?= public
 MAIN_BRANCH ?= main
+BUILD_DIR ?= dist
 
-OWNER := $(shell gh api user -q .login 2>/dev/null)
-
-.PHONY: init install-gh auth repo push build deploy-pages pages all
+.PHONY: all install-gh auth init repo push build deploy-pages clean
 
 all: init repo push deploy-pages
 
@@ -13,17 +14,25 @@ install-gh:
 	@command -v gh >/dev/null 2>&1 || brew install gh
 
 auth: install-gh
-	@gh auth status >/dev/null 2>&1 || (echo "GitHub 로그인이 필요합니다: gh auth login" && exit 1)
+	@gh auth status >/dev/null 2>&1 || (echo "GitHub CLI 로그인 필요: gh auth login" && exit 1)
 
 init:
 	@git rev-parse --is-inside-work-tree >/dev/null 2>&1 || git init
 	@git branch -M $(MAIN_BRANCH)
 
 repo: auth
-	@gh repo view $(OWNER)/$(REPO_NAME) >/dev/null 2>&1 || \
-		gh repo create $(REPO_NAME) --$(VISIBILITY) --source=. --remote=origin
-	@git remote get-url origin >/dev/null 2>&1 || \
-		git remote add origin git@github.com:$(OWNER)/$(REPO_NAME).git
+	@gh repo view $(GITHUB_USER)/$(REPO_NAME) >/dev/null 2>&1 || \
+		gh repo create $(GITHUB_USER)/$(REPO_NAME) --$(VISIBILITY)
+
+	@github_url="git@$(SSH_HOST):$(GITHUB_USER)/$(REPO_NAME).git"; \
+	if git remote get-url origin >/dev/null 2>&1; then \
+		git remote set-url origin $$github_url; \
+	else \
+		git remote add origin $$github_url; \
+	fi
+
+	@echo "Remote:"
+	@git remote -v
 
 push: repo
 	@git add .
@@ -31,22 +40,35 @@ push: repo
 	@git push -u origin $(MAIN_BRANCH)
 
 build:
+	@npm install
 	@npm run build
 
 deploy-pages: push build
 	@git fetch origin gh-pages || true
+
 	@git worktree add -B gh-pages .gh-pages origin/gh-pages 2>/dev/null || \
 		git worktree add -B gh-pages .gh-pages
+
 	@rm -rf .gh-pages/*
 	@cp -R $(BUILD_DIR)/. .gh-pages/
 	@touch .gh-pages/.nojekyll
-	@cd .gh-pages && git add -A && git commit -m "Deploy GitHub Pages" || true
+
+	@cd .gh-pages && git add -A
+	@cd .gh-pages && git commit -m "Deploy GitHub Pages" || true
 	@cd .gh-pages && git push origin gh-pages --force
+
 	@git worktree remove .gh-pages --force
-	@gh api -X POST repos/$(OWNER)/$(REPO_NAME)/pages \
+
+	@gh api -X POST repos/$(GITHUB_USER)/$(REPO_NAME)/pages \
 		-f source[branch]=gh-pages \
 		-f source[path]=/ >/dev/null 2>&1 || \
-	 gh api -X PUT repos/$(OWNER)/$(REPO_NAME)/pages \
+	gh api -X PUT repos/$(GITHUB_USER)/$(REPO_NAME)/pages \
 		-f source[branch]=gh-pages \
 		-f source[path]=/ >/dev/null
-	@echo "배포 완료: https://$(OWNER).github.io/$(REPO_NAME)/"
+
+	@echo ""
+	@echo "GitHub Pages 배포 완료:"
+	@echo "https://$(GITHUB_USER).github.io/$(REPO_NAME)/"
+
+clean:
+	@rm -rf .gh-pages
