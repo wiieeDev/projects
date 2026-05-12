@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>상품 상세 - 당근</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .avatar-sm { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; background: var(--primary-soft); }
+    .header-nav { display: flex; align-items: center; gap: 8px; }
+    .header-nav-link { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-full); font-size: 14px; font-weight: 600; color: var(--text-secondary); transition: all var(--transition); }
+    .header-nav-link:hover { background: var(--bg-gray); color: var(--text-primary); }
+    .related-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 16px; }
+    @media (max-width: 900px) { .related-grid { grid-template-columns: repeat(2, 1fr); } }
+    .report-link { font-size: 12px; color: var(--text-disabled); cursor: pointer; text-decoration: underline; margin-top: 8px; display: inline-block; }
+    .report-link:hover { color: var(--danger); }
+    .seller-products-btn { width: 100%; padding: 10px; background: var(--bg-gray); border: none; border-radius: var(--radius-sm); font-size: 14px; color: var(--text-secondary); cursor: pointer; transition: all var(--transition); font-weight: 500; }
+    .seller-products-btn:hover { background: var(--border); }
+    .sticky-bottom { position: sticky; bottom: 0; background: var(--bg-white); border-top: 1px solid var(--border); padding: 16px 24px; z-index: 10; }
+    @media (max-width: 900px) { .sticky-bottom { display: block; } }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo">
+        <div class="logo-icon">🥕</div>
+        <span class="logo-text">당근</span>
+      </a>
+      <div class="header-search">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="header-search-input" placeholder="검색어를 입력하세요">
+      </div>
+      <div id="header-nav" class="header-nav"></div>
+    </div>
+  </header>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="index.html">홈</a>
+    <span class="sep">›</span>
+    <span id="bc-category" class="breadcrumb-link" style="cursor:pointer;color:var(--text-tertiary)">카테고리</span>
+    <span class="sep">›</span>
+    <span class="current" id="bc-title">상품명</span>
+  </div>
+
+  <!-- DETAIL LAYOUT -->
+  <div class="detail-layout" id="detail-layout">
+    <!-- Loading -->
+    <div style="grid-column: 1/-1; text-align: center; padding: 80px;">
+      <div style="font-size: 40px; margin-bottom: 16px;">🥕</div>
+      <div style="color: var(--text-tertiary);">상품을 불러오는 중...</div>
+    </div>
+  </div>
+
+  <!-- Related Products -->
+  <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px 40px;">
+    <div style="font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+      이 상품은 어때요?
+    </div>
+    <div style="font-size: 14px; color: var(--text-tertiary); margin-bottom: 16px;">같은 카테고리의 다른 상품들</div>
+    <div class="related-grid" id="related-grid"></div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-logo">
+          <div class="logo-icon" style="width:28px;height:28px;font-size:16px;">🥕</div>
+          <span class="logo-text">당근</span>
+        </div>
+        <p class="footer-desc">우리 동네 중고거래, 당근</p>
+      </div>
+      <div class="footer-links">
+        <a href="#">이용약관</a>
+        <a href="#">개인정보처리방침</a>
+        <a href="#">고객센터</a>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 당근. All rights reserved.</div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    function onPageReady() {
+      setupSearch('header-search-input');
+      const id = parseInt(getUrlParam('id'));
+      if (!id) { window.location.href = 'index.html'; return; }
+
+      incrementViews(id);
+      const product = getProductById(id);
+      if (!product) { window.location.href = 'index.html'; return; }
+
+      renderDetail(product);
+      renderRelated(product);
+      updateBreadcrumb(product);
+    }
+
+    function updateBreadcrumb(p) {
+      document.getElementById('bc-category').textContent = p.categoryName;
+      document.getElementById('bc-category').onclick = () => window.location.href = `index.html?category=${p.category}`;
+      document.getElementById('bc-title').textContent = p.title;
+      document.title = p.title + ' - 당근';
+    }
+
+    function renderDetail(p) {
+      const liked = isLiked(p.id);
+      const user = getUser();
+      const isOwner = user && user.name === p.seller.name;
+      const tempPct = Math.min(100, Math.max(0, (p.seller.temp - 30) / 40 * 100));
+
+      const imagesHtml = p.images.map((img, i) => `
+        <div class="image-thumb ${i === 0 ? 'active' : ''}" data-idx="${i}" onclick="selectImage(${i})" style="background:${p.color || '#F4F4F4'}">
+          ${img}
+        </div>
+      `).join('');
+
+      const layout = document.getElementById('detail-layout');
+      layout.innerHTML = `
+        <!-- Left: Images -->
+        <div>
+          <div class="detail-images">
+            <div class="main-image" id="main-image" style="background:${p.color || '#F4F4F4'}">
+              <span id="main-emoji" style="font-size:100px">${p.images[0] || p.emoji}</span>
+              ${p.status !== '판매중' ? `<div class="product-status-badge ${p.status === '거래완료' ? 'sold' : 'reserved'}" style="top:16px;left:16px;font-size:13px;padding:5px 12px">${p.status}</div>` : ''}
+            </div>
+            <div class="image-thumbnails">${imagesHtml}</div>
+          </div>
+
+          <!-- Description -->
+          <div class="detail-content" style="margin-top:16px;">
+            <div class="detail-category-badge">${getCategoryInfo(p.category)?.emoji} ${p.categoryName}</div>
+            <h1 class="detail-title">${p.title}</h1>
+            <div class="detail-meta">
+              <span>📍 ${p.location}</span>
+              <span class="dot">·</span>
+              <span>🕐 ${timeAgo(p.createdAt)}</span>
+            </div>
+            <div class="detail-price ${p.price === 0 ? 'free' : ''}">${formatPrice(p.price)}</div>
+            <p class="detail-desc">${p.description || ''}</p>
+            <div class="detail-stats">
+              <div class="detail-stat">👁️ 조회 ${formatNumber(p.views)}</div>
+              <div class="detail-stat">❤️ 찜 ${formatNumber(p.likes)}</div>
+              <div class="detail-stat">💬 채팅 ${formatNumber(p.chatCount)}</div>
+            </div>
+          </div>
+          <a class="report-link" onclick="showToast('신고가 접수되었습니다.')">이 상품 신고하기</a>
+        </div>
+
+        <!-- Right: Sidebar -->
+        <div>
+          <!-- Seller -->
+          <div class="seller-card">
+            <div class="seller-info">
+              <div class="seller-avatar">${p.seller.emoji || '👤'}</div>
+              <div>
+                <div class="seller-name">${p.seller.name}</div>
+                <div class="seller-region">📍 ${p.seller.region}</div>
+              </div>
+              <button class="btn btn-gray btn-sm" style="margin-left:auto" onclick="showToast('판매자 프로필을 확인합니다.')">프로필 보기</button>
+            </div>
+            <div class="seller-temp">
+              <span style="font-size:13px;color:var(--text-tertiary)">매너온도</span>
+              <div class="temp-bar">
+                <div class="temp-fill" style="width:${tempPct}%"></div>
+              </div>
+              <span class="temp-value">${p.seller.temp}°C</span>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:14px;font-size:13px;color:var(--text-tertiary)">
+              <span>판매 ${p.seller.sellCount}개</span>
+              <span>·</span>
+              <span>구매 ${p.seller.buyCount}개</span>
+            </div>
+            <button class="seller-products-btn" style="margin-top:14px" onclick="window.location.href='index.html'">
+              ${p.seller.name}님의 다른 상품 보기 →
+            </button>
+          </div>
+
+          <!-- Actions -->
+          <div class="seller-card">
+            <div class="detail-actions">
+              <button class="btn-like-detail ${liked ? 'liked' : ''}" id="like-detail-btn" onclick="handleDetailLike(${p.id})" title="찜하기">
+                ${liked ? '❤️' : '🤍'}
+              </button>
+              <button class="btn btn-primary btn-chat btn-full" onclick="handleChat()">
+                💬 채팅하기
+              </button>
+            </div>
+            ${p.price > 0 && p.status === '판매중' ? `
+              <button class="btn btn-outline btn-full" style="margin-top: 10px;" onclick="handleBuyNow()">
+                바로 구매하기
+              </button>
+            ` : ''}
+            ${isOwner ? `
+              <div style="display:flex;gap:8px;margin-top:10px">
+                <button class="btn btn-gray btn-sm btn-full" onclick="window.location.href='write.html?edit=${p.id}'">수정</button>
+                <button class="btn btn-sm btn-full" style="background:#FFF0F0;color:var(--danger);font-weight:600" onclick="handleDelete(${p.id})">삭제</button>
+              </div>
+              <div style="margin-top:10px">
+                <select class="form-select" style="font-size:13px;padding:8px" onchange="changeStatus(${p.id}, this.value)">
+                  <option ${p.status === '판매중' ? 'selected' : ''}>판매중</option>
+                  <option ${p.status === '예약중' ? 'selected' : ''}>예약중</option>
+                  <option ${p.status === '거래완료' ? 'selected' : ''}>거래완료</option>
+                </select>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Safety tip -->
+          <div style="background:var(--primary-light);border-radius:var(--radius-md);padding:16px;font-size:13px;color:var(--text-secondary);line-height:1.6">
+            🛡️ <strong>안전거래 TIP</strong><br>
+            직거래 시 공공장소에서 만나세요.<br>
+            결제 전 상품 상태를 꼭 확인하세요.
+          </div>
+        </div>
+      `;
+    }
+
+    function selectImage(idx) {
+      const product = getProductById(parseInt(getUrlParam('id')));
+      if (!product) return;
+      document.getElementById('main-emoji').textContent = product.images[idx] || product.emoji;
+      document.querySelectorAll('.image-thumb').forEach((t, i) => t.classList.toggle('active', i === idx));
+    }
+
+    function handleDetailLike(id) {
+      const user = getUser();
+      if (!user) { showToast('찜하기는 로그인 후 이용하세요.'); return; }
+      const liked = toggleLike(id);
+      const btn = document.getElementById('like-detail-btn');
+      btn.textContent = liked ? '❤️' : '🤍';
+      btn.classList.toggle('liked', liked);
+      showToast(liked ? '찜 목록에 추가했습니다.' : '찜 목록에서 제거했습니다.');
+    }
+
+    function handleChat() {
+      const user = getUser();
+      if (!user) { showToast('채팅은 로그인 후 이용하세요.'); setTimeout(() => window.location.href = 'login.html', 1000); return; }
+      showToast('채팅방으로 이동합니다. (준비 중)');
+    }
+
+    function handleBuyNow() {
+      const user = getUser();
+      if (!user) { showToast('구매는 로그인 후 이용하세요.'); setTimeout(() => window.location.href = 'login.html', 1000); return; }
+      showModal('바로 구매하기', '이 상품을 구매하시겠습니까?', '구매하기', () => {
+        showToast('결제 기능은 준비 중입니다.');
+      });
+    }
+
+    function handleDelete(id) {
+      showModal('상품 삭제', '정말 이 상품을 삭제하시겠습니까?', '삭제', () => {
+        deleteProduct(id);
+        showToast('상품이 삭제되었습니다.');
+        setTimeout(() => window.location.href = 'index.html', 800);
+      });
+    }
+
+    function changeStatus(id, status) {
+      updateProduct(id, { status });
+      showToast(`상태가 '${status}'(으)로 변경되었습니다.`);
+    }
+
+    function renderRelated(product) {
+      const all = getProducts().filter(p => p.id !== product.id && p.category === product.category);
+      const related = all.sort(() => Math.random() - 0.5).slice(0, 4);
+      const grid = document.getElementById('related-grid');
+      if (related.length === 0) {
+        grid.innerHTML = '<div style="grid-column:1/-1;color:var(--text-tertiary);font-size:14px">관련 상품이 없습니다.</div>';
+        return;
+      }
+      grid.innerHTML = related.map(p => createProductCard(p)).join('');
+    }
+  </script>
+</body>
+</html>

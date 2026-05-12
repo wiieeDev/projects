@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>마이페이지 - 당근</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .avatar-sm { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; background: var(--primary-soft); }
+    .header-nav { display: flex; align-items: center; gap: 8px; }
+    .header-nav-link { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-full); font-size: 14px; font-weight: 600; color: var(--text-secondary); transition: all var(--transition); }
+    .header-nav-link:hover { background: var(--bg-gray); color: var(--text-primary); }
+    .activity-list { display: flex; flex-direction: column; gap: 12px; }
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      background: var(--bg-gray);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .activity-item:hover { background: var(--border); }
+    .activity-thumb {
+      width: 72px;
+      height: 72px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      flex-shrink: 0;
+    }
+    .activity-info { flex: 1; min-width: 0; }
+    .activity-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .activity-price { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+    .activity-meta { font-size: 12px; color: var(--text-tertiary); }
+    .activity-status { padding: 4px 10px; border-radius: var(--radius-full); font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .status-selling { background: var(--primary-light); color: var(--primary); }
+    .status-reserved { background: #EFF9F4; color: var(--success); }
+    .status-sold { background: var(--bg-gray); color: var(--text-tertiary); }
+    .temp-section { background: linear-gradient(135deg, var(--primary-light), #FFD9B8); border-radius: var(--radius-md); padding: 20px; margin-bottom: 16px; text-align: center; }
+    .temp-big { font-size: 48px; font-weight: 900; color: var(--primary); line-height: 1; }
+    .temp-subtitle { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo">
+        <div class="logo-icon">🥕</div>
+        <span class="logo-text">당근</span>
+      </a>
+      <div style="flex:1"></div>
+      <div id="header-nav" class="header-nav"></div>
+    </div>
+  </header>
+
+  <div class="mypage-layout" id="mypage-layout">
+    <div style="grid-column:1/-1;text-align:center;padding:80px;">
+      <div style="font-size:40px;margin-bottom:16px;">🥕</div>
+      <div style="color:var(--text-tertiary)">불러오는 중...</div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-logo">
+          <div class="logo-icon" style="width:28px;height:28px;font-size:16px;">🥕</div>
+          <span class="logo-text">당근</span>
+        </div>
+        <p class="footer-desc">우리 동네 중고거래, 당근</p>
+      </div>
+      <div class="footer-links">
+        <a href="#">이용약관</a>
+        <a href="#">개인정보처리방침</a>
+        <a href="#">고객센터</a>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 당근. All rights reserved.</div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    let currentSection = 'profile';
+    let user = null;
+
+    function onPageReady() {
+      if (!requireAuth()) return;
+      user = getUser();
+      renderLayout();
+      showSection(getUrlParam('section') || 'profile');
+    }
+
+    function renderLayout() {
+      const sellCount = getProducts().filter(p => p.seller?.name === user.name).length;
+      const likeCount = getLikes().length;
+      const tempPct = Math.min(100, Math.max(0, (user.temp - 30) / 40 * 100));
+
+      document.getElementById('mypage-layout').innerHTML = `
+        <!-- SIDEBAR -->
+        <div>
+          <div class="profile-card">
+            <div class="profile-avatar">${user.emoji || '👤'}</div>
+            <div class="profile-name">${user.name}</div>
+            <div class="profile-region">📍 ${user.region || '지역 미설정'}</div>
+            <div class="temp-section" style="margin: 0; border-radius: var(--radius-sm);">
+              <div class="temp-big">${user.temp || 36.5}°</div>
+              <div class="temp-subtitle">🌡️ 매너온도</div>
+              <div class="temp-bar" style="margin-top:10px">
+                <div class="temp-fill" style="width:${tempPct}%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mypage-nav">
+            <div class="mypage-nav-item active" id="nav-profile" onclick="showSection('profile')">
+              👤 내 정보
+            </div>
+            <div class="mypage-nav-item" id="nav-selling" onclick="showSection('selling')">
+              🏷️ 판매 내역 <span style="background:var(--primary);color:white;border-radius:99px;padding:1px 8px;font-size:11px;margin-left:auto">${sellCount}</span>
+            </div>
+            <div class="mypage-nav-item" id="nav-buying" onclick="showSection('buying')">
+              🛒 구매 내역
+            </div>
+            <div class="mypage-nav-item" id="nav-likes" onclick="showSection('likes')">
+              ❤️ 찜 목록 <span style="background:var(--danger);color:white;border-radius:99px;padding:1px 8px;font-size:11px;margin-left:auto">${likeCount}</span>
+            </div>
+            <div class="mypage-nav-item" id="nav-settings" onclick="showSection('settings')">
+              ⚙️ 설정
+            </div>
+            <div class="mypage-nav-item" style="color:var(--danger)" onclick="confirmLogout()">
+              🚪 로그아웃
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="mypage-content" id="section-content">
+          <!-- Dynamic content -->
+        </div>
+      `;
+    }
+
+    function showSection(name) {
+      currentSection = name;
+      // Update nav active state
+      document.querySelectorAll('.mypage-nav-item').forEach(el => el.classList.remove('active'));
+      document.getElementById(`nav-${name}`)?.classList.add('active');
+
+      const content = document.getElementById('section-content');
+      switch(name) {
+        case 'profile': renderProfile(content); break;
+        case 'selling': renderSelling(content); break;
+        case 'buying': renderBuying(content); break;
+        case 'likes': renderLikes(content); break;
+        case 'settings': renderSettings(content); break;
+      }
+    }
+
+    function renderProfile(container) {
+      const products = getProducts().filter(p => p.seller?.name === user.name);
+      const likeCount = getLikes().length;
+      container.innerHTML = `
+        <div class="mypage-section-title">내 정보</div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-number">${products.length}</div>
+            <div class="stat-label">판매 상품</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">${likeCount}</div>
+            <div class="stat-label">찜한 상품</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">${user.temp || 36.5}°</div>
+            <div class="stat-label">매너온도</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+          <div style="font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:16px">프로필 정보</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;justify-content:space-between;padding:14px;background:var(--bg-gray);border-radius:var(--radius-sm)">
+              <span style="font-size:14px;color:var(--text-tertiary)">닉네임</span>
+              <span style="font-size:14px;font-weight:600">${user.name}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:14px;background:var(--bg-gray);border-radius:var(--radius-sm)">
+              <span style="font-size:14px;color:var(--text-tertiary)">이메일</span>
+              <span style="font-size:14px;font-weight:600">${user.email || '-'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:14px;background:var(--bg-gray);border-radius:var(--radius-sm)">
+              <span style="font-size:14px;color:var(--text-tertiary)">거래 지역</span>
+              <span style="font-size:14px;font-weight:600">📍 ${user.region || '-'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:14px;background:var(--bg-gray);border-radius:var(--radius-sm)">
+              <span style="font-size:14px;color:var(--text-tertiary)">가입일</span>
+              <span style="font-size:14px;font-weight:600">${user.joinedAt ? new Date(user.joinedAt).toLocaleDateString('ko-KR') : '2026.05.12'}</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-full" onclick="showSection('settings')">프로필 수정하기</button>
+      `;
+    }
+
+    function renderSelling(container) {
+      const products = getProducts().filter(p => p.seller?.name === user.name);
+      container.innerHTML = `
+        <div class="mypage-section-title">판매 내역 (${products.length}개)</div>
+        <div style="display:flex;gap:8px;margin-bottom:20px">
+          <button class="btn btn-primary btn-sm" onclick="window.location.href='write.html'">+ 새 상품 등록</button>
+        </div>
+        ${products.length === 0
+          ? `<div class="empty-state"><div class="empty-icon">🏷️</div><div class="empty-title">판매 내역이 없어요</div><div class="empty-desc">첫 상품을 등록해보세요!</div></div>`
+          : `<div class="activity-list">${products.map(p => renderActivityItem(p, 'sell')).join('')}</div>`
+        }
+      `;
+    }
+
+    function renderBuying(container) {
+      container.innerHTML = `
+        <div class="mypage-section-title">구매 내역</div>
+        <div class="empty-state">
+          <div class="empty-icon">🛒</div>
+          <div class="empty-title">구매 내역이 없어요</div>
+          <div class="empty-desc">마음에 드는 상품을 찾아보세요!</div>
+          <button class="btn btn-primary" style="margin-top:16px" onclick="window.location.href='index.html'">상품 둘러보기</button>
+        </div>
+      `;
+    }
+
+    function renderLikes(container) {
+      const likedIds = getLikes();
+      const likedProducts = getProducts().filter(p => likedIds.includes(p.id));
+      container.innerHTML = `
+        <div class="mypage-section-title">찜 목록 (${likedProducts.length}개)</div>
+        ${likedProducts.length === 0
+          ? `<div class="empty-state"><div class="empty-icon">❤️</div><div class="empty-title">찜한 상품이 없어요</div><div class="empty-desc">마음에 드는 상품에 하트를 눌러보세요.</div><button class="btn btn-primary" style="margin-top:16px" onclick="window.location.href='index.html'">상품 둘러보기</button></div>`
+          : `<div class="activity-list">${likedProducts.map(p => renderActivityItem(p, 'like')).join('')}</div>`
+        }
+      `;
+    }
+
+    function renderSettings(container) {
+      container.innerHTML = `
+        <div class="mypage-section-title">설정</div>
+        <form class="profile-edit-form" onsubmit="handleProfileEdit(event)">
+          <div>
+            <label class="form-label">닉네임</label>
+            <input type="text" class="form-input" id="edit-name" value="${user.name}" maxlength="10">
+          </div>
+          <div>
+            <label class="form-label">거래 지역</label>
+            <select class="form-select" id="edit-region">
+              ${REGIONS.map(r => `<option ${r === user.region ? 'selected' : ''} value="${r}">${r}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="form-label">프로필 이모지</label>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px" id="emoji-selector">
+              ${['🙂','😊','🌟','⭐','🌸','☁️','🌿','🍁','🌊','☀️','🌙','✨','💫','🌺','🎈','🥕'].map(e => `
+                <div class="emoji-opt" data-emoji="${e}" onclick="selectEmoji('${e}')" style="width:40px;height:40px;border-radius:50%;background:${user.emoji === e ? 'var(--primary)' : 'var(--bg-gray)'};display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;border:2px solid ${user.emoji === e ? 'var(--primary)' : 'transparent'};transition:all 0.15s">
+                  ${e}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:8px">
+            <button type="button" class="btn btn-gray btn-full" onclick="showSection('profile')">취소</button>
+            <button type="submit" class="btn btn-primary btn-full">저장</button>
+          </div>
+        </form>
+        <div style="margin-top:28px;padding-top:24px;border-top:1px solid var(--border)">
+          <div style="font-size:15px;font-weight:700;color:var(--text-primary);margin-bottom:16px">계정 관리</div>
+          <button class="btn btn-full" style="background:#FFF0F0;color:var(--danger);font-weight:600" onclick="confirmLogout()">로그아웃</button>
+        </div>
+      `;
+    }
+
+    function renderActivityItem(p, type) {
+      const statusClass = p.status === '판매중' ? 'status-selling' : p.status === '예약중' ? 'status-reserved' : 'status-sold';
+      return `
+        <div class="activity-item" onclick="window.location.href='detail.html?id=${p.id}'">
+          <div class="activity-thumb" style="background:${p.color || '#F4F4F4'}">${p.emoji}</div>
+          <div class="activity-info">
+            <div class="activity-title">${p.title}</div>
+            <div class="activity-price">${formatPrice(p.price)}</div>
+            <div class="activity-meta">📍 ${p.location} · ${timeAgo(p.createdAt)} · 조회 ${p.views}</div>
+          </div>
+          <div class="activity-status ${statusClass}">${p.status}</div>
+        </div>
+      `;
+    }
+
+    function selectEmoji(emoji) {
+      user.emoji = emoji;
+      document.querySelectorAll('.emoji-opt').forEach(el => {
+        const isSelected = el.dataset.emoji === emoji;
+        el.style.background = isSelected ? 'var(--primary)' : 'var(--bg-gray)';
+        el.style.borderColor = isSelected ? 'var(--primary)' : 'transparent';
+      });
+    }
+
+    function handleProfileEdit(event) {
+      event.preventDefault();
+      const name = document.getElementById('edit-name').value.trim();
+      const region = document.getElementById('edit-region').value;
+      if (name.length < 2) { showToast('닉네임은 2자 이상 입력해주세요.'); return; }
+
+      user = { ...user, name, region };
+      saveUser(user);
+
+      // Update in users list
+      const users = getUsers();
+      const idx = users.findIndex(u => u.email === user.email);
+      if (idx !== -1) { users[idx] = { ...users[idx], name, region, emoji: user.emoji }; saveUsers(users); }
+
+      showToast('프로필이 수정되었습니다.');
+      renderLayout();
+      showSection('profile');
+    }
+
+    function confirmLogout() {
+      showModal('로그아웃', '정말 로그아웃 하시겠습니까?', '로그아웃', () => {
+        logout();
+        showToast('로그아웃되었습니다.');
+        setTimeout(() => window.location.href = 'index.html', 800);
+      });
+    }
+  </script>
+</body>
+</html>

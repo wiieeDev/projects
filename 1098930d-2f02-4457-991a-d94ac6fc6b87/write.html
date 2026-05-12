@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>상품 등록 - 당근</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .avatar-sm { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; background: var(--primary-soft); }
+    .header-nav { display: flex; align-items: center; gap: 8px; }
+    .header-nav-link { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-full); font-size: 14px; font-weight: 600; color: var(--text-secondary); transition: all var(--transition); }
+    .header-nav-link:hover { background: var(--bg-gray); color: var(--text-primary); }
+    .char-count { font-size: 12px; color: var(--text-disabled); text-align: right; margin-top: 4px; }
+    .image-count { font-size: 12px; color: var(--text-tertiary); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo">
+        <div class="logo-icon">🥕</div>
+        <span class="logo-text">당근</span>
+      </a>
+      <div style="flex:1"></div>
+      <div id="header-nav" class="header-nav"></div>
+    </div>
+  </header>
+
+  <div class="write-layout">
+    <div class="write-header">
+      <h1>✏️ 상품 등록</h1>
+      <p>판매할 상품 정보를 입력해 주세요.</p>
+    </div>
+
+    <form class="write-form" id="write-form" onsubmit="handleSubmit(event)">
+
+      <!-- 사진 -->
+      <div class="form-section">
+        <label class="form-label">사진 <span class="required">*</span> <span class="image-count" id="img-count">(0/10)</span></label>
+        <div class="form-hint" style="margin-bottom: 12px;">첫 번째 사진이 대표 이미지로 설정됩니다.</div>
+        <div class="image-upload-area" id="image-area">
+          <label class="upload-btn">
+            <span>📷</span>
+            <span>사진 추가</span>
+            <input type="file" accept="image/*" multiple onchange="handleImageUpload(event)">
+          </label>
+        </div>
+      </div>
+
+      <!-- 제목 -->
+      <div class="form-section">
+        <label class="form-label" for="title">제목 <span class="required">*</span></label>
+        <input type="text" id="title" class="form-input" placeholder="상품명을 입력하세요" maxlength="60" oninput="updateCharCount('title', 'title-count', 60)">
+        <div class="char-count" id="title-count">0/60</div>
+      </div>
+
+      <!-- 카테고리 -->
+      <div class="form-section">
+        <label class="form-label">카테고리 <span class="required">*</span></label>
+        <div class="category-pills" id="category-pills"></div>
+        <input type="hidden" id="selected-category">
+      </div>
+
+      <!-- 가격 -->
+      <div class="form-section">
+        <label class="form-label" for="price">가격 <span class="required">*</span></label>
+        <div class="price-group">
+          <span class="currency">₩</span>
+          <input type="number" id="price" class="form-input" placeholder="0" min="0" oninput="formatPriceInput()">
+        </div>
+        <label class="free-toggle" onclick="toggleFree()">
+          <div class="toggle-switch" id="free-toggle">
+            <div class="toggle-knob"></div>
+          </div>
+          <span id="free-label">나눔으로 설정</span>
+        </label>
+        <div class="form-hint">가격을 흥정 받고 싶을 때는 '가격 제안 받기'를 선택하세요.</div>
+        <label class="free-toggle" onclick="toggleNegotiate()" style="margin-top: 8px;">
+          <div class="toggle-switch" id="negotiate-toggle">
+            <div class="toggle-knob"></div>
+          </div>
+          <span id="negotiate-label">가격 제안 받기</span>
+        </label>
+      </div>
+
+      <!-- 설명 -->
+      <div class="form-section">
+        <label class="form-label" for="description">설명 <span class="required">*</span></label>
+        <textarea id="description" class="form-input form-textarea" placeholder="상품 상태, 구매 시기, 사용 기간 등을 자세히 설명해 주세요." maxlength="2000" oninput="updateCharCount('description', 'desc-count', 2000)"></textarea>
+        <div class="char-count" id="desc-count">0/2000</div>
+      </div>
+
+      <!-- 거래 지역 -->
+      <div class="form-section">
+        <label class="form-label">거래 지역 <span class="required">*</span></label>
+        <select id="region-select" class="form-select">
+          <option value="">지역을 선택하세요</option>
+        </select>
+        <div class="form-hint">직거래 가능한 지역을 선택해주세요.</div>
+      </div>
+
+      <!-- 거래 방법 -->
+      <div class="form-section">
+        <label class="form-label">거래 방법</label>
+        <div style="display: flex; gap: 10px;">
+          <label class="free-toggle" onclick="toggleTradeMethod('direct')">
+            <div class="toggle-switch on" id="direct-toggle"><div class="toggle-knob" style="left:20px"></div></div>
+            <span>직거래</span>
+          </label>
+          <label class="free-toggle" onclick="toggleTradeMethod('delivery')">
+            <div class="toggle-switch" id="delivery-toggle"><div class="toggle-knob"></div></div>
+            <span>택배 거래</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- 버튼 -->
+      <div class="write-footer">
+        <button type="button" class="btn btn-gray btn-full" onclick="history.back()">취소</button>
+        <button type="submit" class="btn btn-primary btn-full">등록하기</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    let uploadedEmojis = [];
+    let isFree = false;
+    let isNegotiate = false;
+    let tradeMethod = { direct: true, delivery: false };
+    let editId = null;
+
+    function onPageReady() {
+      if (!requireAuth()) return;
+
+      editId = parseInt(getUrlParam('edit')) || null;
+
+      // Render categories
+      const pills = document.getElementById('category-pills');
+      pills.innerHTML = CATEGORIES.map(cat => `
+        <div class="category-pill" data-id="${cat.id}" onclick="selectCategory('${cat.id}')">
+          ${cat.emoji} ${cat.name}
+        </div>
+      `).join('');
+
+      // Render regions
+      const sel = document.getElementById('region-select');
+      REGIONS.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r;
+        opt.textContent = r;
+        sel.appendChild(opt);
+      });
+
+      // Edit mode
+      if (editId) {
+        const product = getProductById(editId);
+        if (product) {
+          document.querySelector('.write-header h1').textContent = '✏️ 상품 수정';
+          document.getElementById('title').value = product.title;
+          document.getElementById('price').value = product.price;
+          document.getElementById('description').value = product.description || '';
+          document.getElementById('region-select').value = product.location;
+          selectCategory(product.category);
+          updateCharCount('title', 'title-count', 60);
+          updateCharCount('description', 'desc-count', 2000);
+        }
+      }
+    }
+
+    function handleImageUpload(event) {
+      const files = Array.from(event.target.files);
+      const remaining = 10 - uploadedEmojis.length;
+      if (files.length > remaining) {
+        showToast(`최대 10개까지 업로드 가능합니다.`);
+        return;
+      }
+
+      // Use emoji placeholders for each file (simulate preview)
+      const emojiMap = ['📷', '🖼️', '🏞️', '📸', '🎨', '🖼️', '📷', '🏔️', '🌅', '🌄'];
+      files.slice(0, remaining).forEach((file, i) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          uploadedEmojis.push('📸');
+          addImagePreview(e.target.result, uploadedEmojis.length - 1);
+          updateImageCount();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function addImagePreview(src, idx) {
+      const area = document.getElementById('image-area');
+      const preview = document.createElement('div');
+      preview.className = 'preview-image';
+      preview.id = `preview-${idx}`;
+      preview.innerHTML = `
+        <img src="${src}" alt="업로드 이미지">
+        ${idx === 0 ? '<div style="position:absolute;bottom:4px;left:4px;background:var(--primary);color:white;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px">대표</div>' : ''}
+        <button class="preview-remove" onclick="removeImage(${idx})">✕</button>
+      `;
+      // Insert before upload button
+      area.insertBefore(preview, area.querySelector('.upload-btn'));
+    }
+
+    function removeImage(idx) {
+      uploadedEmojis.splice(idx, 1);
+      document.getElementById(`preview-${idx}`)?.remove();
+      updateImageCount();
+      // Re-index
+      document.querySelectorAll('.preview-image').forEach((el, i) => {
+        el.id = `preview-${i}`;
+        el.querySelector('.preview-remove').onclick = () => removeImage(i);
+      });
+    }
+
+    function updateImageCount() {
+      document.getElementById('img-count').textContent = `(${uploadedEmojis.length}/10)`;
+    }
+
+    function selectCategory(id) {
+      document.querySelectorAll('.category-pill').forEach(p => {
+        p.classList.toggle('selected', p.dataset.id === id);
+      });
+      document.getElementById('selected-category').value = id;
+    }
+
+    function updateCharCount(inputId, countId, max) {
+      const val = document.getElementById(inputId).value.length;
+      document.getElementById(countId).textContent = `${val}/${max}`;
+    }
+
+    function toggleFree() {
+      isFree = !isFree;
+      const toggle = document.getElementById('free-toggle');
+      toggle.classList.toggle('on', isFree);
+      toggle.querySelector('.toggle-knob').style.left = isFree ? '20px' : '2px';
+      document.getElementById('free-label').textContent = isFree ? '나눔 설정됨 ✓' : '나눔으로 설정';
+      const priceInput = document.getElementById('price');
+      if (isFree) {
+        priceInput.value = 0;
+        priceInput.disabled = true;
+        priceInput.style.opacity = '0.5';
+      } else {
+        priceInput.value = '';
+        priceInput.disabled = false;
+        priceInput.style.opacity = '1';
+      }
+    }
+
+    function toggleNegotiate() {
+      isNegotiate = !isNegotiate;
+      const toggle = document.getElementById('negotiate-toggle');
+      toggle.classList.toggle('on', isNegotiate);
+      toggle.querySelector('.toggle-knob').style.left = isNegotiate ? '20px' : '2px';
+      document.getElementById('negotiate-label').textContent = isNegotiate ? '가격 제안 허용 ✓' : '가격 제안 받기';
+    }
+
+    function toggleTradeMethod(method) {
+      tradeMethod[method] = !tradeMethod[method];
+      const toggle = document.getElementById(`${method}-toggle`);
+      toggle.classList.toggle('on', tradeMethod[method]);
+      toggle.querySelector('.toggle-knob').style.left = tradeMethod[method] ? '20px' : '2px';
+    }
+
+    function formatPriceInput() {
+      const val = parseInt(document.getElementById('price').value);
+      if (val < 0) document.getElementById('price').value = 0;
+    }
+
+    function handleSubmit(event) {
+      event.preventDefault();
+      const title = document.getElementById('title').value.trim();
+      const catId = document.getElementById('selected-category').value;
+      const price = isFree ? 0 : parseInt(document.getElementById('price').value) || 0;
+      const description = document.getElementById('description').value.trim();
+      const region = document.getElementById('region-select').value;
+
+      if (!title) { showToast('제목을 입력해주세요.'); return; }
+      if (!catId) { showToast('카테고리를 선택해주세요.'); return; }
+      if (!description) { showToast('상품 설명을 입력해주세요.'); return; }
+      if (!region) { showToast('거래 지역을 선택해주세요.'); return; }
+
+      const catInfo = getCategoryInfo(catId);
+      const user = getUser();
+
+      const productData = {
+        title, price, category: catId,
+        categoryName: catInfo?.name || '기타',
+        emoji: catInfo?.emoji || '📦',
+        location: region, region,
+        description,
+        color: CATEGORY_COLORS[catId] || '#F4F4F4',
+        images: uploadedEmojis.length > 0 ? uploadedEmojis : [catInfo?.emoji || '📦'],
+        seller: {
+          name: user.name,
+          emoji: user.emoji || '👤',
+          region: region,
+          temp: user.temp || 36.5,
+          sellCount: user.sellCount || 0,
+          buyCount: user.buyCount || 0,
+        },
+        negotiate: isNegotiate,
+        tradeMethod
+      };
+
+      if (editId) {
+        updateProduct(editId, productData);
+        showToast('상품이 수정되었습니다.');
+        setTimeout(() => window.location.href = `detail.html?id=${editId}`, 800);
+      } else {
+        const newProduct = addProduct(productData);
+        // Increment sell count
+        const users = getUsers();
+        const idx = users.findIndex(u => u.email === user.email);
+        if (idx !== -1) {
+          users[idx].sellCount = (users[idx].sellCount || 0) + 1;
+          saveUsers(users);
+          saveUser(users[idx]);
+        }
+        showToast('상품이 등록되었습니다! 🥕');
+        setTimeout(() => window.location.href = `detail.html?id=${newProduct.id}`, 800);
+      }
+    }
+  </script>
+</body>
+</html>

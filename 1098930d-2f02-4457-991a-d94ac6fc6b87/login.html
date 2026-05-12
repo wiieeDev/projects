@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인 / 회원가입 - 당근</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-card">
+      <!-- Logo -->
+      <div class="auth-logo">
+        <div class="logo-icon">🥕</div>
+        <h1>당근</h1>
+        <p>우리 동네 중고거래</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">로그인</div>
+        <div class="auth-tab" id="tab-signup" onclick="switchTab('signup')">회원가입</div>
+      </div>
+
+      <!-- Error -->
+      <div class="auth-error" id="auth-error"></div>
+
+      <!-- Login Form -->
+      <form class="auth-form" id="login-form" onsubmit="handleLogin(event)">
+        <div class="input-group">
+          <label>이메일</label>
+          <input type="email" class="form-input" id="login-email" placeholder="이메일을 입력하세요" required autocomplete="email">
+        </div>
+        <div class="input-group">
+          <label>비밀번호</label>
+          <input type="password" class="form-input" id="login-password" placeholder="비밀번호를 입력하세요" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top:4px">로그인</button>
+        <div class="auth-divider">또는</div>
+        <button type="button" class="btn btn-gray btn-full" onclick="handleGuestLogin()">
+          👤 게스트로 둘러보기
+        </button>
+      </form>
+
+      <!-- Signup Form -->
+      <form class="auth-form" id="signup-form" style="display:none" onsubmit="handleSignup(event)">
+        <div class="input-group">
+          <label>닉네임 <span style="color:var(--primary)">*</span></label>
+          <input type="text" class="form-input" id="signup-name" placeholder="사용할 닉네임 (2-10자)" maxlength="10" required>
+        </div>
+        <div class="input-group">
+          <label>이메일 <span style="color:var(--primary)">*</span></label>
+          <input type="email" class="form-input" id="signup-email" placeholder="이메일을 입력하세요" required autocomplete="email">
+        </div>
+        <div class="input-group">
+          <label>비밀번호 <span style="color:var(--primary)">*</span></label>
+          <input type="password" class="form-input" id="signup-password" placeholder="비밀번호 (8자 이상)" minlength="8" required autocomplete="new-password">
+        </div>
+        <div class="input-group">
+          <label>비밀번호 확인 <span style="color:var(--primary)">*</span></label>
+          <input type="password" class="form-input" id="signup-password2" placeholder="비밀번호를 한번 더 입력하세요" required autocomplete="new-password">
+        </div>
+        <div class="input-group">
+          <label>거래 지역 <span style="color:var(--primary)">*</span></label>
+          <select class="form-select" id="signup-region" required>
+            <option value="">지역을 선택하세요</option>
+          </select>
+        </div>
+        <div style="padding: 14px; background: var(--primary-light); border-radius: var(--radius-sm); font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+          <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="agree-terms" style="margin-top: 2px;" required>
+            <span>
+              <a href="#" style="color: var(--primary); font-weight: 600;">이용약관</a> 및
+              <a href="#" style="color: var(--primary); font-weight: 600;">개인정보처리방침</a>에 동의합니다. (필수)
+            </span>
+          </label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg">회원가입</button>
+      </form>
+
+      <!-- Footer -->
+      <div class="auth-footer">
+        <span id="auth-footer-text">계정이 없으신가요?</span>
+        <a id="auth-footer-link" onclick="switchTab('signup')" style="cursor:pointer"> 회원가입</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    const USER_EMOJIS = ['🙂', '😊', '🌟', '⭐', '🌸', '☁️', '🌿', '🍁', '🌊', '☀️', '🌙', '✨', '💫', '🌺', '🎈'];
+
+    function onPageReady() {
+      // Redirect if already logged in
+      if (getUser()) { window.location.href = 'index.html'; return; }
+
+      // Populate regions
+      const sel = document.getElementById('signup-region');
+      REGIONS.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r;
+        opt.textContent = r;
+        sel.appendChild(opt);
+      });
+
+      // Check if redirected from signup tab
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') === 'signup') switchTab('signup');
+    }
+
+    function switchTab(tab) {
+      const isLogin = tab === 'login';
+      document.getElementById('tab-login').classList.toggle('active', isLogin);
+      document.getElementById('tab-signup').classList.toggle('active', !isLogin);
+      document.getElementById('login-form').style.display = isLogin ? 'flex' : 'none';
+      document.getElementById('signup-form').style.display = isLogin ? 'none' : 'flex';
+      document.getElementById('auth-footer-text').textContent = isLogin ? '계정이 없으신가요?' : '이미 계정이 있으신가요?';
+      document.getElementById('auth-footer-link').textContent = isLogin ? ' 회원가입' : ' 로그인';
+      document.getElementById('auth-footer-link').onclick = () => switchTab(isLogin ? 'signup' : 'login');
+      hideError();
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('auth-error');
+      el.textContent = msg;
+      el.classList.add('show');
+    }
+    function hideError() {
+      document.getElementById('auth-error').classList.remove('show');
+    }
+
+    function handleLogin(event) {
+      event.preventDefault();
+      hideError();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      // Demo account
+      if (email === 'demo@carrot.com' && password === 'demo1234') {
+        const demoUser = {
+          name: '당근이', email, emoji: '🥕', region: '서울 강남구',
+          temp: 42.3, sellCount: 12, buyCount: 5
+        };
+        saveUser(demoUser);
+        redirectAfterAuth();
+        return;
+      }
+
+      const result = loginUser(email, password);
+      if (result.success) {
+        showToast(`${result.user.name}님, 어서오세요! 🥕`);
+        redirectAfterAuth();
+      } else {
+        showError(result.message);
+      }
+    }
+
+    function handleSignup(event) {
+      event.preventDefault();
+      hideError();
+      const name = document.getElementById('signup-name').value.trim();
+      const email = document.getElementById('signup-email').value.trim();
+      const password = document.getElementById('signup-password').value;
+      const password2 = document.getElementById('signup-password2').value;
+      const region = document.getElementById('signup-region').value;
+
+      if (name.length < 2) { showError('닉네임은 2자 이상 입력해주세요.'); return; }
+      if (password !== password2) { showError('비밀번호가 일치하지 않습니다.'); return; }
+      if (!region) { showError('거래 지역을 선택해주세요.'); return; }
+
+      const user = {
+        name, email, password, region,
+        emoji: USER_EMOJIS[Math.floor(Math.random() * USER_EMOJIS.length)],
+        temp: 36.5,
+        sellCount: 0,
+        buyCount: 0,
+        joinedAt: new Date().toISOString()
+      };
+
+      const result = registerUser(user);
+      if (result.success) {
+        saveUser(user);
+        showToast(`${name}님, 당근에 오신 걸 환영해요! 🥕`);
+        redirectAfterAuth();
+      } else {
+        showError(result.message);
+      }
+    }
+
+    function handleGuestLogin() {
+      showToast('게스트로 둘러보는 중... 일부 기능은 로그인이 필요합니다.');
+      setTimeout(() => window.location.href = 'index.html', 800);
+    }
+
+    function redirectAfterAuth() {
+      const redirect = sessionStorage.getItem('dg_redirect');
+      sessionStorage.removeItem('dg_redirect');
+      setTimeout(() => window.location.href = redirect || 'index.html', 500);
+    }
+  </script>
+</body>
+</html>

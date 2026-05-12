@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>당근 - 우리 동네 중고거래</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .avatar-sm {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      background: var(--primary-soft);
+    }
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-nav-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      transition: all var(--transition);
+    }
+    .header-nav-link:hover { background: var(--bg-gray); color: var(--text-primary); }
+  </style>
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="logo">
+        <div class="logo-icon">🥕</div>
+        <span class="logo-text">당근</span>
+      </a>
+      <div class="header-search">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="header-search-input" placeholder="검색어를 입력하세요">
+      </div>
+      <div id="header-nav" class="header-nav"></div>
+    </div>
+  </header>
+
+  <!-- NAV TABS -->
+  <nav class="nav-tabs-bar">
+    <div class="nav-tabs">
+      <a href="index.html" class="nav-tab active">중고거래</a>
+      <a href="#" class="nav-tab" onclick="showToast('준비 중입니다.')">부동산</a>
+      <a href="#" class="nav-tab" onclick="showToast('준비 중입니다.')">중고차</a>
+      <a href="#" class="nav-tab" onclick="showToast('준비 중입니다.')">알바</a>
+      <a href="#" class="nav-tab" onclick="showToast('준비 중입니다.')">동네생활</a>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <!-- 지역 -->
+      <div class="sidebar-section popular-keywords">
+        <div class="sidebar-title">인기 검색어</div>
+        <div class="keyword-tags" id="keyword-tags"></div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="filter-label">🗺️ 지역 선택</div>
+        <div class="region-display" id="region-display" onclick="showRegionModal()">
+          <span class="pin-icon">📍</span>
+          <span id="region-text">전체 지역</span>
+          <span style="margin-left:auto; font-size:12px; color:var(--text-disabled)">변경</span>
+        </div>
+
+        <div class="filter-divider"></div>
+
+        <div class="filter-group">
+          <div class="filter-group-title">카테고리</div>
+          <div class="filter-list" id="category-list"></div>
+        </div>
+
+        <div class="filter-divider"></div>
+
+        <div class="filter-group">
+          <div class="filter-group-title">가격대</div>
+          <div class="price-inputs">
+            <input type="number" class="price-input" id="price-min" placeholder="최소">
+            <span class="price-dash">~</span>
+            <input type="number" class="price-input" id="price-max" placeholder="최대">
+          </div>
+          <button class="btn btn-gray btn-sm btn-full" style="margin-top: 8px" onclick="applyPriceFilter()">적용</button>
+        </div>
+
+        <div class="filter-group">
+          <div class="filter-group-title">거래 상태</div>
+          <div class="filter-list">
+            <div class="filter-item" id="filter-available" onclick="toggleAvailableFilter()">
+              <span>✅</span> 판매중만 보기
+            </div>
+            <div class="filter-item" id="filter-free" onclick="toggleFreeFilter()">
+              <span>🎁</span> 나눔만 보기
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-reset" onclick="resetFilters()">
+          ↺ 필터 초기화
+        </div>
+      </div>
+    </aside>
+
+    <!-- PRODUCT AREA -->
+    <div>
+      <div class="products-header">
+        <div class="products-count" id="products-count">상품 <strong>0</strong>개</div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <select class="sort-select" id="sort-select" onchange="renderProducts()">
+            <option value="latest">최신순</option>
+            <option value="price_asc">가격 낮은순</option>
+            <option value="price_desc">가격 높은순</option>
+            <option value="likes">찜 많은순</option>
+          </select>
+          <div class="view-toggle">
+            <button class="view-btn active" id="grid-btn" onclick="setViewMode('grid')" title="격자 보기">⊞</button>
+            <button class="view-btn" id="list-btn" onclick="setViewMode('list')" title="목록 보기">☰</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-grid" id="product-grid"></div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+  </main>
+
+  <!-- FAB -->
+  <button class="fab" onclick="goToWrite()" title="판매하기">+</button>
+
+  <!-- Region Modal -->
+  <div class="modal-overlay" id="region-modal">
+    <div class="modal">
+      <div class="modal-title">📍 지역 선택</div>
+      <div class="modal-desc">거래할 지역을 선택해주세요.</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;" id="region-list"></div>
+      <button class="btn btn-gray btn-full" onclick="closeRegionModal()">닫기</button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-logo">
+          <div class="logo-icon" style="width:28px;height:28px;font-size:16px;">🥕</div>
+          <span class="logo-text">당근</span>
+        </div>
+        <p class="footer-desc">우리 동네 중고거래, 당근<br>따뜻한 거래로 이웃과 소통해요.</p>
+      </div>
+      <div class="footer-links">
+        <a href="#">회사 소개</a>
+        <a href="#">이용약관</a>
+        <a href="#">개인정보처리방침</a>
+        <a href="#">고객센터</a>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 당근. All rights reserved.</div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // State
+    let currentCategory = null;
+    let currentRegion = null;
+    let currentPage = 1;
+    let viewMode = 'grid';
+    let filterAvailable = false;
+    let filterFree = false;
+    let priceMin = null;
+    let priceMax = null;
+    const PAGE_SIZE = 12;
+
+    function onPageReady() {
+      // Init from URL params
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('category')) currentCategory = params.get('category');
+      if (params.get('q')) document.getElementById('header-search-input').value = params.get('q');
+
+      setupSearch('header-search-input');
+      renderCategoryList();
+      renderKeywords();
+      renderRegionList();
+      renderProducts();
+
+      document.getElementById('header-search-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') renderProducts();
+      });
+    }
+
+    function renderKeywords() {
+      const container = document.getElementById('keyword-tags');
+      container.innerHTML = POPULAR_KEYWORDS.map(kw => `
+        <span class="keyword-tag" onclick="searchKeyword('${kw}')">${kw}</span>
+      `).join('');
+    }
+
+    function searchKeyword(kw) {
+      document.getElementById('header-search-input').value = kw;
+      currentPage = 1;
+      renderProducts();
+    }
+
+    function renderCategoryList() {
+      const container = document.getElementById('category-list');
+      const products = getProducts();
+      const counts = {};
+      products.forEach(p => counts[p.category] = (counts[p.category] || 0) + 1);
+
+      const allItem = `
+        <div class="filter-item ${!currentCategory ? 'active' : ''}" onclick="setCategory(null)">
+          <span>🏪</span> 전체
+          <span class="count">${products.length}</span>
+        </div>
+      `;
+      const catItems = CATEGORIES.map(cat => `
+        <div class="filter-item ${currentCategory === cat.id ? 'active' : ''}" onclick="setCategory('${cat.id}')">
+          <span>${cat.emoji}</span> ${cat.name}
+          <span class="count">${counts[cat.id] || 0}</span>
+        </div>
+      `).join('');
+      container.innerHTML = allItem + catItems;
+    }
+
+    function setCategory(id) {
+      currentCategory = id;
+      currentPage = 1;
+      renderCategoryList();
+      renderProducts();
+    }
+
+    function renderRegionList() {
+      const container = document.getElementById('region-list');
+      const all = `<span class="keyword-tag ${!currentRegion ? 'filter-item active' : ''}" onclick="setRegion(null)" style="cursor:pointer">전체</span>`;
+      const regions = REGIONS.map(r => `
+        <span class="keyword-tag" onclick="setRegion('${r}')" style="cursor:pointer">${r}</span>
+      `).join('');
+      container.innerHTML = all + regions;
+    }
+
+    function setRegion(region) {
+      currentRegion = region;
+      document.getElementById('region-text').textContent = region || '전체 지역';
+      currentPage = 1;
+      closeRegionModal();
+      renderProducts();
+    }
+
+    function showRegionModal() {
+      renderRegionList();
+      document.getElementById('region-modal').classList.add('show');
+    }
+    function closeRegionModal() {
+      document.getElementById('region-modal').classList.remove('show');
+    }
+    document.addEventListener('click', (e) => {
+      const modal = document.getElementById('region-modal');
+      if (e.target === modal) closeRegionModal();
+    });
+
+    function toggleAvailableFilter() {
+      filterAvailable = !filterAvailable;
+      document.getElementById('filter-available').classList.toggle('active', filterAvailable);
+      currentPage = 1;
+      renderProducts();
+    }
+
+    function toggleFreeFilter() {
+      filterFree = !filterFree;
+      document.getElementById('filter-free').classList.toggle('active', filterFree);
+      currentPage = 1;
+      renderProducts();
+    }
+
+    function applyPriceFilter() {
+      priceMin = parseInt(document.getElementById('price-min').value) || null;
+      priceMax = parseInt(document.getElementById('price-max').value) || null;
+      currentPage = 1;
+      renderProducts();
+    }
+
+    function resetFilters() {
+      currentCategory = null;
+      currentRegion = null;
+      filterAvailable = false;
+      filterFree = false;
+      priceMin = null;
+      priceMax = null;
+      document.getElementById('price-min').value = '';
+      document.getElementById('price-max').value = '';
+      document.getElementById('region-text').textContent = '전체 지역';
+      document.getElementById('filter-available').classList.remove('active');
+      document.getElementById('filter-free').classList.remove('active');
+      document.getElementById('header-search-input').value = '';
+      currentPage = 1;
+      renderCategoryList();
+      renderProducts();
+      showToast('필터가 초기화되었습니다.');
+    }
+
+    function setViewMode(mode) {
+      viewMode = mode;
+      const grid = document.getElementById('product-grid');
+      const gridBtn = document.getElementById('grid-btn');
+      const listBtn = document.getElementById('list-btn');
+      if (mode === 'grid') {
+        grid.classList.remove('list-view');
+        gridBtn.classList.add('active');
+        listBtn.classList.remove('active');
+      } else {
+        grid.classList.add('list-view');
+        listBtn.classList.add('active');
+        gridBtn.classList.remove('active');
+      }
+      renderProducts();
+    }
+
+    function getFilteredProducts() {
+      const q = document.getElementById('header-search-input')?.value.trim().toLowerCase() || '';
+      let products = getProducts();
+
+      if (q) products = products.filter(p =>
+        p.title.toLowerCase().includes(q) ||
+        p.description?.toLowerCase().includes(q) ||
+        p.categoryName?.toLowerCase().includes(q)
+      );
+      if (currentCategory) products = products.filter(p => p.category === currentCategory);
+      if (currentRegion) products = products.filter(p => p.region === currentRegion || p.location === currentRegion);
+      if (filterAvailable) products = products.filter(p => p.status === '판매중');
+      if (filterFree) products = products.filter(p => p.price === 0);
+      if (priceMin !== null) products = products.filter(p => p.price >= priceMin);
+      if (priceMax !== null) products = products.filter(p => p.price <= priceMax);
+
+      // Sort
+      const sort = document.getElementById('sort-select')?.value || 'latest';
+      if (sort === 'latest') products.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      else if (sort === 'price_asc') products.sort((a, b) => a.price - b.price);
+      else if (sort === 'price_desc') products.sort((a, b) => b.price - a.price);
+      else if (sort === 'likes') products.sort((a, b) => b.likes - a.likes);
+
+      return products;
+    }
+
+    function renderProducts() {
+      const filtered = getFilteredProducts();
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / PAGE_SIZE);
+      if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
+
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const paged = filtered.slice(start, start + PAGE_SIZE);
+
+      // Count
+      document.getElementById('products-count').innerHTML =
+        `상품 <strong>${total.toLocaleString()}</strong>개`;
+
+      // Grid
+      const grid = document.getElementById('product-grid');
+      if (paged.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <div class="empty-title">검색 결과가 없어요</div>
+            <div class="empty-desc">다른 검색어나 필터를 시도해보세요.</div>
+          </div>
+        `;
+      } else {
+        grid.innerHTML = paged.map(p => createProductCard(p, viewMode)).join('');
+      }
+
+      // Pagination
+      renderPagination(currentPage, totalPages);
+    }
+
+    function renderPagination(current, total) {
+      const container = document.getElementById('pagination');
+      if (total <= 1) { container.innerHTML = ''; return; }
+
+      let html = `<button class="page-btn" onclick="goPage(${current - 1})" ${current === 1 ? 'disabled' : ''}>‹</button>`;
+      const start = Math.max(1, current - 2);
+      const end = Math.min(total, start + 4);
+      for (let i = start; i <= end; i++) {
+        html += `<button class="page-btn ${i === current ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+      }
+      html += `<button class="page-btn" onclick="goPage(${current + 1})" ${current === total ? 'disabled' : ''}>›</button>`;
+      container.innerHTML = html;
+    }
+
+    function goPage(page) {
+      currentPage = page;
+      renderProducts();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function goToWrite() {
+      const user = getUser();
+      if (!user) {
+        showToast('판매하기는 로그인 후 이용하세요.');
+        setTimeout(() => window.location.href = 'login.html', 1000);
+        return;
+      }
+      window.location.href = 'write.html';
+    }
+  </script>
+</body>
+</html>
